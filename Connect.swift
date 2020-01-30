@@ -77,7 +77,9 @@ class Connect: NSObject {
     }
   }
 
-
+  func stopListening() {
+    self.listening?.cancel()
+  }
 
 //      let merlin = Wizard(grade: 5)
 //      let grad = Notification.Name(rawValue: "graduated")
