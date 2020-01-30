@@ -8,12 +8,13 @@
 
 import Network
 import Foundation
-import SwiftUI
-import Combine
 
-let weatherPublisher = PassthroughSubject<String, Never>()
+
+
+//let weatherPublisher = PassthroughSubject<String, Never>()
 
 class BlobModel: ObservableObject {
+  static let sharedInstance = BlobModel()
   @Published var score: String = ""
 }
 
@@ -26,6 +27,7 @@ class Connect: NSObject {
   
   private var localEndPoint: String?
   private var remoteEndPoint: String?
+  
   
   func listenUDP(port: NWEndpoint.Port) {
     do {
@@ -54,41 +56,29 @@ class Connect: NSObject {
     } catch {
       print("unable to create listener")
     }
-    
     self.listening?.start(queue: .main)
-    
-//    let trickNamePublisher = NotificationCenter.default.publisher(for: .newTrickDownloaded).map { notification in
-//          return notification.userInfo?["data"] as! Data
-//      }.decode(MagicTrick.self, JSONDecoder())
-//       .catch {
-//        print("fuck")
-//      }.publisher(for: \.name)
-//      .recieve(on: RunLoop.main)
-
-    enum WeatherError: Error {
-      case thingsJustHappen
-    }
-
-    
-    
   }
   
   
   
   func receive(on connection: NWConnection) {
     connection.receiveMessage { (data, context, isComplete, error) in
-    if let error = error {
-      print(error)
-      return
-    }
-    if let data = data, !data.isEmpty {
-      let backToString = String(decoding: data, as: UTF8.self)
-      print("b2S",backToString)
-      DispatchQueue.main.async {
-//          weatherPublisher.send(backToString)
-        globalVariable.score = backToString
+      if let error = error {
+        print(error)
+        return
       }
-      
+      if let data = data, !data.isEmpty {
+        let backToString = String(decoding: data, as: UTF8.self)
+        print("b2S",backToString)
+        DispatchQueue.main.async {
+          globalVariable.score = backToString
+        }
+      }
+    }
+  }
+
+
+
 //      let merlin = Wizard(grade: 5)
 //      let grad = Notification.Name(rawValue: "graduated")
 //      let cancellable = NotificationCenter.default.publisher(for: grad, object: merlin)
@@ -98,12 +88,39 @@ class Connect: NSObject {
 //
 //      let gradeSubscriber = Subscribers.Assign(object: merlin, keyPath: \.grade)
 //      cancellable.subscribe(gradeSubscriber)
+
+      //    let trickNamePublisher = NotificationCenter.default.publisher(for: .newTrickDownloaded).map { notification in
+      //          return notification.userInfo?["data"] as! Data
+      //      }.decode(MagicTrick.self, JSONDecoder())
+      //       .catch {
+      //        print("fuck")
+      //      }.publisher(for: \.name)
+      //      .recieve(on: RunLoop.main)
       
-      
+func connectToUDP(hostUDP:NWEndpoint.Host,portUDP:NWEndpoint.Port) {
+
+self.talking = NWConnection(host: hostUDP, port: portUDP, using: .udp)
+
+    self.talking?.stateUpdateHandler = { (newState) in
+      switch (newState) {
+      case .ready:
+        break
+      default:
+        break
+      }
     }
+    self.talking?.start(queue: .main)
+}
+
+  func sendUDP(_ content: String) {
+        let contentToSendUDP = content.data(using: String.Encoding.utf8)
+        self.talking?.send(content: contentToSendUDP, completion: NWConnection.SendCompletion.contentProcessed(({ (NWError) in
+          if (NWError == nil) {
+            print("send ok")
+          } else {
+            print("ERROR! Error when data (Type: String) sending. NWError: \n \(NWError!) ")
+          }
+        })))
     }
-  }
-  
-  
-  
+
 }
