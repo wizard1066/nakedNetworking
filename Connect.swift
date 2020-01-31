@@ -8,10 +8,10 @@
 
 import Network
 import Foundation
+import Combine
 
 
-
-//let weatherPublisher = PassthroughSubject<String, Never>()
+let pingPublisher = PassthroughSubject<Void, Never>()
 
 class BlobModel: ObservableObject {
   static let sharedInstance = BlobModel()
@@ -72,6 +72,7 @@ class Connect: NSObject {
         print("b2S",backToString)
         DispatchQueue.main.async {
           globalVariable.score = backToString
+          pingPublisher.send()
         }
       }
     }

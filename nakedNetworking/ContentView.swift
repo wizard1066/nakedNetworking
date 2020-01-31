@@ -47,6 +47,8 @@ struct ContentView: View {
   
   @ObservedObject var globalVariable:BlobModel = BlobModel.sharedInstance
   @State var model = ToggleModel()
+  @State var disable = false
+  @State var refresh = false
   
   
   var body: some View {
@@ -55,20 +57,27 @@ struct ContentView: View {
       Toggle(player, isOn: $model.state).frame(width: 128, height: 64, alignment: .center)
       Text("\(globalVariable.score)")
         .onAppear {
-        print("1984")
           let port2U = NWEndpoint.Port.init(integerLiteral: 1984)
           communication.listenUDP(port: port2U)
+        }.onReceive(pingPublisher) { (_) in
+          self.disable = false
         }
+      
+      
       Button(action: {
         if self.model.state {
           makeConnect(port: "1984", message: "ping")
-          self.globalVariable.score = "ping"
+          self.disable = true
+          self.refresh = !self.refresh
+          
         } else {
           makeConnect(port: "4891", message: "pong")
-          self.globalVariable.score = "pong"
+          self.disable = true
+          self.refresh = !self.refresh
         }
       }) {
         Text("whack")
+          .disabled(disable)
       }
     }
   }
