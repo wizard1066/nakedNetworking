@@ -63,8 +63,6 @@ class Connect: NSObject {
     self.listening?.start(queue: .main)
   }
   
-//  var answer: DateInterval!
-  
   func receive(on connection: NWConnection) {
     endingTime = Date()
     var string2Send: String = "8"
@@ -91,14 +89,6 @@ class Connect: NSObject {
       }
     }
   }
-  
-//  func returnLastVolley() -> Float {
-//    if answer != nil {
-//      return Float(answer.duration)
-//    } else {
-//      return(8)
-//    }
-//  }
 
   func stopListening() {
     self.listening?.cancel()

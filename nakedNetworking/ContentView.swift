@@ -38,11 +38,6 @@ struct ToggleModel {
 
 struct ContentView: View {
 
-//    let subscriber = weatherPublisher
-//      .sink {value in
-//        print("boo")
-//    }
-
   let dingPublisher = PassthroughSubject<Void, Never>()
 
   @ObservedObject var globalVariable:BlobModel = BlobModel.sharedInstance
@@ -50,7 +45,7 @@ struct ContentView: View {
   @State var disable = false
   @State var refresh = false
   @State var timeToDie = ""
-  @State var youWin: Timer?
+//  @State var youWin: Timer?
   // timer is a State so that I can it, else it would be considered immutable
   @State var youLose: Timer?
   @State var volley = ""
@@ -75,7 +70,7 @@ struct ContentView: View {
           self.youLose = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { timer in
             countDown = countDown! - 0.1
             self.timeToDie = String(countDown!)
-              if countDown! < 0.0 {
+            if countDown! < 0.0 && !self.disable {
                 self.disable = true
                 self.loser = true
                 self.youLose?.invalidate()
@@ -89,26 +84,22 @@ struct ContentView: View {
           })
         }
       
-      
       Button(action: {
         if self.model.state {
-          self.youWin?.invalidate()
+          self.youLose?.invalidate()
           self.volley = ""
           self.loser = false
-          
+          self.disable = true
+          self.refresh = !self.refresh
           makeConnect(port: "1984", message: "ping")
-          self.disable = true
-          self.refresh = !self.refresh
-          self.youLose?.invalidate()
+          
         } else {
-          makeConnect(port: "4891", message: "pong")
-          self.youWin?.invalidate()
+          self.youLose?.invalidate()
           self.volley = ""
           self.loser = false
-          
           self.disable = true
           self.refresh = !self.refresh
-          self.youLose?.invalidate()
+          makeConnect(port: "4891", message: "pong")
         }
       }) {
         Text("whack")
@@ -137,11 +128,3 @@ func makeConnect(port: String, message: String) {
   communication.connectToUDP(hostUDP: host, portUDP: port!)
   communication.sendUDP(message)
 }
-
-
-//          .onReceive(weatherPublisher) { (newData) in
-////            text2S = newData
-////            print("\(text2S) blob \(self.nlob.score)")
-////            self.nlob.score = newData
-//
-//          }
