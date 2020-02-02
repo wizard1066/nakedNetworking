@@ -43,13 +43,14 @@ struct ContentView: View {
 //        print("boo")
 //    }
 
+  let dingPublisher = PassthroughSubject<Void, Never>()
 
-  
   @ObservedObject var globalVariable:BlobModel = BlobModel.sharedInstance
   @State var model = ToggleModel()
   @State var disable = false
   @State var refresh = false
-  
+  // timer is a State so that I can it, else it would be considered immutable
+  @State var timer: Timer?
   
   var body: some View {
     
@@ -59,8 +60,17 @@ struct ContentView: View {
         .onAppear {
           let port2U = NWEndpoint.Port.init(integerLiteral: 1984)
           communication.listenUDP(port: port2U)
-        }.onReceive(pingPublisher) { (_) in
+        }.onReceive(pingPublisher) { ( data ) in
+          print("data ",data)
           self.disable = false
+          var countDown = Float(data)
+          self.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { timer in
+            countDown = countDown! - 0.1
+              if countDown! < 0.0 {
+                self.disable = true
+                self.timer?.invalidate()
+            }
+          })
         }
       
       
@@ -69,15 +79,17 @@ struct ContentView: View {
           makeConnect(port: "1984", message: "ping")
           self.disable = true
           self.refresh = !self.refresh
-          
+          self.timer?.invalidate()
         } else {
           makeConnect(port: "4891", message: "pong")
           self.disable = true
           self.refresh = !self.refresh
+          self.timer?.invalidate()
         }
       }) {
         Text("whack")
           .disabled(disable)
+          
       }
     }
   }

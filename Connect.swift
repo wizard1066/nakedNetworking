@@ -11,7 +11,7 @@ import Foundation
 import Combine
 
 
-let pingPublisher = PassthroughSubject<Void, Never>()
+let pingPublisher = PassthroughSubject<String, Never>()
 
 class BlobModel: ObservableObject {
   static let sharedInstance = BlobModel()
@@ -27,6 +27,9 @@ class Connect: NSObject {
   
   private var localEndPoint: String?
   private var remoteEndPoint: String?
+  
+  private var startingTime: Date?
+  private var endingTime: Date?
   
   
   func listenUDP(port: NWEndpoint.Port) {
@@ -62,6 +65,12 @@ class Connect: NSObject {
   
   
   func receive(on connection: NWConnection) {
+    endingTime = Date()
+    var string2Send: String = "8"
+    if startingTime != nil {
+      let answer = DateInterval(start: startingTime!, end: endingTime!)
+      string2Send = String(answer.duration)
+    }
     connection.receiveMessage { (data, context, isComplete, error) in
       if let error = error {
         print(error)
@@ -72,7 +81,7 @@ class Connect: NSObject {
         print("b2S",backToString)
         DispatchQueue.main.async {
           globalVariable.score = backToString
-          pingPublisher.send()
+          pingPublisher.send(string2Send)
         }
       }
     }
@@ -116,6 +125,7 @@ self.talking = NWConnection(host: hostUDP, port: portUDP, using: .udp)
 }
 
   func sendUDP(_ content: String) {
+        startingTime = Date()
         let contentToSendUDP = content.data(using: String.Encoding.utf8)
         self.talking?.send(content: contentToSendUDP, completion: NWConnection.SendCompletion.contentProcessed(({ (NWError) in
           if (NWError == nil) {
