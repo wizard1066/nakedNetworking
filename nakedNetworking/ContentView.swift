@@ -49,8 +49,12 @@ struct ContentView: View {
   @State var model = ToggleModel()
   @State var disable = false
   @State var refresh = false
+  @State var timeToDie = ""
+  @State var youWin: Timer?
   // timer is a State so that I can it, else it would be considered immutable
-  @State var timer: Timer?
+  @State var youLose: Timer?
+  @State var volley = ""
+  @State var loser = false
   
   var body: some View {
     
@@ -63,12 +67,24 @@ struct ContentView: View {
         }.onReceive(pingPublisher) { ( data ) in
           print("data ",data)
           self.disable = false
+          self.volley = ""
           var countDown = Float(data)
-          self.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { timer in
+          if countDown! > 4 {
+            countDown = 4
+          }
+          self.youLose = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { timer in
             countDown = countDown! - 0.1
+            self.timeToDie = String(countDown!)
               if countDown! < 0.0 {
                 self.disable = true
-                self.timer?.invalidate()
+                self.loser = true
+                self.youLose?.invalidate()
+                self.volley = "You Lose"
+                if self.model.state {
+                  makeConnect(port: "1984", message: "win")
+                } else {
+                  makeConnect(port: "4891", message: "win")
+                }
             }
           })
         }
@@ -76,21 +92,33 @@ struct ContentView: View {
       
       Button(action: {
         if self.model.state {
+          self.youWin?.invalidate()
+          self.volley = ""
+          self.loser = false
+          
           makeConnect(port: "1984", message: "ping")
           self.disable = true
           self.refresh = !self.refresh
-          self.timer?.invalidate()
+          self.youLose?.invalidate()
         } else {
           makeConnect(port: "4891", message: "pong")
+          self.youWin?.invalidate()
+          self.volley = ""
+          self.loser = false
+          
           self.disable = true
           self.refresh = !self.refresh
-          self.timer?.invalidate()
+          self.youLose?.invalidate()
         }
       }) {
         Text("whack")
           .disabled(disable)
-          
       }
+      Text(timeToDie)
+      Text(volley).onReceive(winPublisher, perform: {
+        self.timeToDie = "You Win"
+        self.disable = false
+      })
     }
   }
 }
