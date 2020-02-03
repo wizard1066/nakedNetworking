@@ -45,15 +45,34 @@ struct ContentView: View {
   @State var disable = false
   @State var refresh = false
   @State var timeToDie = ""
-//  @State var youWin: Timer?
   // timer is a State so that I can it, else it would be considered immutable
   @State var youLose: Timer?
   @State var volley = ""
-  @State var loser = false
+  @State var hit = false
+  @State var game = 1
+  @State var game1 = ""
+  @State var game2 = ""
+  @State var game3 = ""
+  @State var game4 = ""
+  @State var game5 = ""
+  @State var game6 = ""
+  @State var game7 = ""
+  @State var games:[String] = []
+  @State var remoteWin = 0
+  @State var localWin = 0
+  @State var localLose = 0
+  @State var remoteLose = 0
+  @State var newGame = false
+  
   
   var body: some View {
     
     VStack {
+      Button(action: {
+        self.disable = false
+      }) {
+        Text("reset")
+      }
       Toggle(player, isOn: $model.state).frame(width: 128, height: 64, alignment: .center)
       Text("\(globalVariable.score)")
         .onAppear {
@@ -61,6 +80,7 @@ struct ContentView: View {
           communication.listenUDP(port: port2U)
         }.onReceive(pingPublisher) { ( data ) in
           print("data ",data)
+          self.hit = false
           self.disable = false
           self.volley = ""
           var countDown = Float(data)
@@ -72,9 +92,10 @@ struct ContentView: View {
             self.timeToDie = String(countDown!)
             if countDown! < 0.0 && !self.disable {
                 self.disable = true
-                self.loser = true
                 self.youLose?.invalidate()
                 self.volley = "You Lose"
+                self.globalVariable.score = "lose"
+                self.winWin(game: self.game,leader: "x")
                 if self.model.state {
                   makeConnect(port: "1984", message: "win")
                 } else {
@@ -85,21 +106,16 @@ struct ContentView: View {
         }
       
       Button(action: {
-        if self.model.state {
-          self.youLose?.invalidate()
-          self.volley = ""
-          self.loser = false
-          self.disable = true
-          self.refresh = !self.refresh
-          makeConnect(port: "1984", message: "ping")
-          
-        } else {
-          self.youLose?.invalidate()
-          self.volley = ""
-          self.loser = false
-          self.disable = true
-          self.refresh = !self.refresh
-          makeConnect(port: "4891", message: "pong")
+        self.disable = true
+        self.youLose?.invalidate()
+        self.refresh = !self.refresh
+        if !self.hit {
+          self.hit = true
+          if self.model.state {
+            makeConnect(port: "1984", message: "ping")
+          } else {
+            makeConnect(port: "4891", message: "pong")
+          }
         }
       }) {
         Text("whack")
@@ -107,12 +123,109 @@ struct ContentView: View {
       }
       Text(timeToDie)
       Text(volley).onReceive(winPublisher, perform: {
-        self.timeToDie = "You Win"
+        self.hit = false
+        self.volley = "You Win"
         self.disable = false
+        self.winWin(game: self.game,leader: "o")
+        self.globalVariable.score = ""
       })
+      HStack {
+        Text(game1)
+        Text(game2)
+        Text(game3)
+        Text(game4)
+        Text(game5)
+        Text(game6)
+        Text(game7)
+      }
+      Button(action: {
+        self.reset()
+        self.disable = false
+        self.remoteWin = 0
+        self.localWin = 0
+        self.volley = ""
+        self.newGame = false
+        self.game = 1
+        self.timeToDie = ""
+        self.globalVariable.score = ""
+        if self.model.state {
+          makeConnect(port: "1984", message: "game")
+        } else {
+          makeConnect(port: "4891", message: "game")
+        }
+      }) {
+        Text("new game").disabled(newGame ? false: true)
+      }.onReceive(gamePublisher) { (_) in
+        self.reset()
+        self.disable = false
+        self.remoteWin = 0
+        self.localWin = 0
+        self.volley = ""
+        self.newGame = false
+        self.game = 1
+        self.timeToDie = ""
+        self.globalVariable.score = ""
+      }
+    }
+    
+  }
+  
+  func reset() {
+    self.game1 = ""
+    self.game2 = ""
+    self.game3 = ""
+    self.game4 = ""
+    self.game5 = ""
+    self.game6 = ""
+    self.game7 = ""
+  }
+  
+  func winWin(game: Int, leader: String) {
+    switch self.game {
+      case 1:
+        self.game1 = leader
+      case 2:
+        self.game2 = leader
+      case 3:
+        self.game3 = leader
+      case 4:
+        self.game4 = leader
+      case 5:
+        self.game5 = leader
+      case 6:
+        self.game6 = leader
+      case 7:
+        self.game7 = leader
+      default:
+        break
+    }
+  
+    self.game = self.game + 1
+    if leader == "o" && !self.model.state {
+      remoteWin = remoteWin + 1
+    }
+    if leader == "o" && self.model.state {
+      localWin = localWin + 1
+    }
+    if leader == "x" && !self.model.state {
+      remoteLose = remoteLose + 1
+    }
+    if leader == "x" && self.model.state {
+      localLose = localLose + 1
+    }
+
+    if game == 7 {
+      newGame = true
+      if self.model.state {
+        self.volley = "game over yang wins " + " " + String(localWin) + " ying wins " + String(localLose)
+      } else {
+        self.volley = "game over ying wins " + " " + String(remoteWin) + " yang wins " + String(remoteLose)
+      }
     }
   }
 }
+
+
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
@@ -128,3 +241,5 @@ func makeConnect(port: String, message: String) {
   communication.connectToUDP(hostUDP: host, portUDP: port!)
   communication.sendUDP(message)
 }
+
+

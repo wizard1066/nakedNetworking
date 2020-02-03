@@ -13,6 +13,7 @@ import Combine
 
 let pingPublisher = PassthroughSubject<String, Never>()
 let winPublisher = PassthroughSubject<Void, Never>()
+let gamePublisher = PassthroughSubject<Void, Never>()
 
 class BlobModel: ObservableObject {
   static let sharedInstance = BlobModel()
@@ -80,10 +81,14 @@ class Connect: NSObject {
         print("b2S",backToString)
         DispatchQueue.main.async {
           globalVariable.score = backToString
-          if backToString != "win" {
+          if backToString == "ping" || backToString == "pong" {
             pingPublisher.send(string2Send)
-          } else {
+          }
+          if backToString == "win" {
             winPublisher.send()
+          }
+          if backToString == "game" {
+            gamePublisher.send()
           }
         }
       }
