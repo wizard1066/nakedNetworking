@@ -41,7 +41,7 @@ class Connect: NSObject {
     let parameters = NWParameters()
     parameters.includePeerToPeer = true
     
-    browser = NWBrowser(for: .bonjour(type: "_wow._udp", domain: nil), using: parameters)
+    browser = NWBrowser(for: .bonjour(type: "_whack._udp", domain: nil), using: parameters)
     browser?.browseResultsChangedHandler = { foo, changes in
       for change in changes {
         switch change {
@@ -60,16 +60,14 @@ class Connect: NSObject {
 //  func listenUDP(port: NWEndpoint.Port) {
 func listenUDP(zeus: String) {
     do {
-//     self.listening = try NWListener(using: .udp, on: port)
      self.listening = try NWListener(using: .udp)
-     self.listening?.service = NWListener.Service(name:zeus, type: "_wow._udp", domain: nil, txtRecord: nil)
-//     self.listening?.service = NWListener.Service(type: "_wow._udp")
+     self.listening?.service = NWListener.Service(name:zeus, type: "_whack._udp", domain: nil, txtRecord: nil)
      self.listening?.stateUpdateHandler = {(newState) in
      switch newState {
         case .ready:
           print("ready")
         default:
-          print("anything else seen newState")
+          break
         }
       }
       
@@ -77,13 +75,13 @@ func listenUDP(zeus: String) {
         switch(serviceChange) {
           case .add(let endpoint):
             switch endpoint {
-              case let .service(name, foo1, foo2, foo3):
-                print("Listening as \(name) \(foo1) \(foo2) \(foo3)")
+              case let .service(name, _, _, _):
+                print("Service ",name)
               default:
-                print("anything else seen endpoint")
+                break
               }
             default:
-              print("anything else seen serviceChange")
+              break
           }
         }
       
@@ -94,7 +92,7 @@ func listenUDP(zeus: String) {
               print("new connection")
               self.receive(on: newConnection)
             default:
-              print("fuck newConnection failed")
+              break
           }
         }
         newConnection.start(queue: .main)
@@ -162,16 +160,7 @@ func listenUDP(zeus: String) {
 
 
 func connectToUDP(name: String) {
-  
-//  let parameters = NWParameters()
-//  parameters.includePeerToPeer = true
-//  if let ipOptions = self.talking?.parameters.defaultProtocolStack.internetProtocol as? NWProtocolIP.Options {
-//        ipOptions.version = .v4
-//  }
-//  print("bonjour ",bonjourUDP,parameters)
-//  parameters.includePeerToPeer = true
-//  self.talking = NWConnection(to: bonjourUDP, using: parameters)
-  self.talking = NWConnection(to: .service(name: name, type: "_wow._udp", domain: "local", interface: nil), using: .udp)
+  self.talking = NWConnection(to: .service(name: name, type: "_whack._udp", domain: "local", interface: nil), using: .udp)
   
 //self.talking = NWConnection(host: hostUDP, port: portUDP, using: .udp)
 
@@ -179,16 +168,8 @@ func connectToUDP(name: String) {
       switch (newState) {
       case .ready:
         print("ready to send")
-      case .failed(let error):
-        print("failed error ",error)
-      case .waiting(let error):
-        print("waiting error",error)
-      case .preparing:
-        print("preparing X")
-      case .setup:
-        print("setup")
       default:
-        print("something else")
+        break
       }
     }
     self.talking?.start(queue: .main)
