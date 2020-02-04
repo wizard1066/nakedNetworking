@@ -19,15 +19,17 @@ struct ToggleModel {
   willSet {
     if state {
       communication.stopListening()
-      let port2U = NWEndpoint.Port.init(integerLiteral: 1984)
-      communication.listenUDP(port: port2U)
+//      let port2U = NWEndpoint.Port.init(integerLiteral: 1984)
+//      communication.listenUDP(port: port2U)
+      communication.listenUDP(zeus: "pong")
       player = "ying"
       globalVariable.score = "pong"
       print("1984")
     } else {
       communication.stopListening()
-      let port2U = NWEndpoint.Port.init(integerLiteral: 4891)
-      communication.listenUDP(port: port2U)
+//      let port2U = NWEndpoint.Port.init(integerLiteral: 4891)
+//      communication.listenUDP(port: port2U)
+      communication.listenUDP(zeus: "ping")
       player = "yang"
       globalVariable.score = "ping"
       print("4891")
@@ -57,7 +59,7 @@ struct ContentView: View {
   @State var game5 = ""
   @State var game6 = ""
   @State var game7 = ""
-  @State var games:[String] = []
+
   @State var remoteWin = 0
   @State var localWin = 0
   @State var localLose = 0
@@ -69,6 +71,11 @@ struct ContentView: View {
     
     VStack {
       Button(action: {
+        communication.findUDP()
+      }) {
+        Text("search")
+      }
+      Button(action: {
         self.disable = false
       }) {
         Text("reset")
@@ -76,8 +83,7 @@ struct ContentView: View {
       Toggle(player, isOn: $model.state).frame(width: 128, height: 64, alignment: .center)
       Text("\(globalVariable.score)")
         .onAppear {
-          let port2U = NWEndpoint.Port.init(integerLiteral: 1984)
-          communication.listenUDP(port: port2U)
+          communication.listenUDP(zeus: "pong")
         }.onReceive(pingPublisher) { ( data ) in
           print("data ",data)
           self.hit = false
@@ -97,9 +103,9 @@ struct ContentView: View {
                 self.globalVariable.score = "lose"
                 self.winWin(game: self.game,leader: "x")
                 if self.model.state {
-                  makeConnect(port: "1984", message: "win")
+                  makeConnect(zeus: "pong", message: "win")
                 } else {
-                  makeConnect(port: "4891", message: "win")
+                  makeConnect(zeus: "ping", message: "win")
                 }
             }
           })
@@ -112,9 +118,9 @@ struct ContentView: View {
         if !self.hit {
           self.hit = true
           if self.model.state {
-            makeConnect(port: "1984", message: "ping")
+            makeConnect(zeus: "pong", message: "ping")
           } else {
-            makeConnect(port: "4891", message: "pong")
+            makeConnect(zeus: "ping", message: "pong")
           }
         }
       }) {
@@ -149,9 +155,9 @@ struct ContentView: View {
         self.timeToDie = ""
         self.globalVariable.score = ""
         if self.model.state {
-          makeConnect(port: "1984", message: "game")
+          makeConnect(zeus: "pong", message: "game")
         } else {
-          makeConnect(port: "4891", message: "game")
+          makeConnect(zeus: "ping", message: "game")
         }
       }) {
         Text("new game").disabled(newGame ? false: true)
@@ -233,13 +239,10 @@ struct ContentView_Previews: PreviewProvider {
     }
 }
 
-func makeConnect(port: String, message: String) {
-  print("port/message ",port,message)
-  let host = NWEndpoint.Host.init("192.168.1.255")
-  let port = NWEndpoint.Port.init(port)
-  
-  communication.connectToUDP(hostUDP: host, portUDP: port!)
-  communication.sendUDP(message)
+func makeConnect(zeus: String, message: String) {
+  print("port/message ",zeus,message)
+    communication.connectToUDP(name: zeus)
+    communication.sendUDP(message)
 }
 
 

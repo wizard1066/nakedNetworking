@@ -21,30 +21,71 @@ class BlobModel: ObservableObject {
 }
 
 var globalVariable = BlobModel()
+var playing: NWEndpoint?
 
 class Connect: NSObject {
 
   private var talking: NWConnection?
   private var listening: NWListener?
-  
+  private var browser: NWBrowser?
   private var localEndPoint: String?
   private var remoteEndPoint: String?
   
   private var startingTime: Date?
   private var endingTime: Date?
   
+
   
-  func listenUDP(port: NWEndpoint.Port) {
+  func findUDP() {
+    print("findUDP")
+    let parameters = NWParameters()
+    parameters.includePeerToPeer = true
+    
+    browser = NWBrowser(for: .bonjour(type: "_wow._udp", domain: nil), using: parameters)
+    browser?.browseResultsChangedHandler = { foo, changes in
+      for change in changes {
+        switch change {
+        case .added(let browseResult):
+          playing = browseResult.endpoint
+          print(browseResult.endpoint)
+        default:
+          print("anything else seen")
+        }
+      }
+    }
+    self.browser?.start(queue: .main)
+  }
+  
+  
+//  func listenUDP(port: NWEndpoint.Port) {
+func listenUDP(zeus: String) {
     do {
-     self.listening = try NWListener(using: .udp, on: port)
+//     self.listening = try NWListener(using: .udp, on: port)
+     self.listening = try NWListener(using: .udp)
+     self.listening?.service = NWListener.Service(name:zeus, type: "_wow._udp", domain: nil, txtRecord: nil)
+//     self.listening?.service = NWListener.Service(type: "_wow._udp")
      self.listening?.stateUpdateHandler = {(newState) in
      switch newState {
         case .ready:
           print("ready")
         default:
-          break
+          print("anything else seen newState")
         }
       }
+      
+      self.listening?.serviceRegistrationUpdateHandler = { (serviceChange) in
+        switch(serviceChange) {
+          case .add(let endpoint):
+            switch endpoint {
+              case let .service(name, foo1, foo2, foo3):
+                print("Listening as \(name) \(foo1) \(foo2) \(foo3)")
+              default:
+                print("anything else seen endpoint")
+              }
+            default:
+              print("anything else seen serviceChange")
+          }
+        }
       
       self.listening?.newConnectionHandler = {(newConnection) in
         newConnection.stateUpdateHandler = {newState in
@@ -53,10 +94,10 @@ class Connect: NSObject {
               print("new connection")
               self.receive(on: newConnection)
             default:
-              break
+              print("fuck newConnection failed")
           }
         }
-        newConnection.start(queue: DispatchQueue(label: "new client"))
+        newConnection.start(queue: .main)
       }
     } catch {
       print("unable to create listener")
@@ -117,16 +158,37 @@ class Connect: NSObject {
       //      }.publisher(for: \.name)
       //      .recieve(on: RunLoop.main)
       
-func connectToUDP(hostUDP:NWEndpoint.Host,portUDP:NWEndpoint.Port) {
+//func connectToUDP(hostUDP:NWEndpoint.Host,portUDP:NWEndpoint.Port) {
 
-self.talking = NWConnection(host: hostUDP, port: portUDP, using: .udp)
+
+func connectToUDP(name: String) {
+  
+//  let parameters = NWParameters()
+//  parameters.includePeerToPeer = true
+//  if let ipOptions = self.talking?.parameters.defaultProtocolStack.internetProtocol as? NWProtocolIP.Options {
+//        ipOptions.version = .v4
+//  }
+//  print("bonjour ",bonjourUDP,parameters)
+//  parameters.includePeerToPeer = true
+//  self.talking = NWConnection(to: bonjourUDP, using: parameters)
+  self.talking = NWConnection(to: .service(name: name, type: "_wow._udp", domain: "local", interface: nil), using: .udp)
+  
+//self.talking = NWConnection(host: hostUDP, port: portUDP, using: .udp)
 
     self.talking?.stateUpdateHandler = { (newState) in
       switch (newState) {
       case .ready:
-        break
+        print("ready to send")
+      case .failed(let error):
+        print("failed error ",error)
+      case .waiting(let error):
+        print("waiting error",error)
+      case .preparing:
+        print("preparing X")
+      case .setup:
+        print("setup")
       default:
-        break
+        print("something else")
       }
     }
     self.talking?.start(queue: .main)
